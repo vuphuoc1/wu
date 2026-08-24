@@ -152,6 +152,108 @@ Tới đây thì ra được thời gian mà tiến trình đã thực thi nhưn
 
 <img width="1530" height="272" alt="image" src="https://github.com/user-attachments/assets/fa085a02-f9c9-4d93-bf9d-e84d20c684ea" />
 
+Task13:The attacker exfiltrated multiple sensitive files. When did the exfiltration start? (UTC)
+
+Để có thể tìm được thời gian mà attacker đã đánh cắp dữ liệu ta quay lại với file log của teamviewer vì trước đó attacker đã cài malware thông qua teamviewer.
+
+Tìm với từ khóa là sendfile
+
+<img width="1392" height="697" alt="image" src="https://github.com/user-attachments/assets/4c2b4ab9-95bd-47fe-b6be-b025a4c93a59" />
+
+Bởi vì múi giờ trong file log là utc+1 nên ta trừ hao đi 1 tiếng, có thể thấy file nhạy cảm đã được tuồn ra khỏi hệ thống vào lúc 2025-08-20 10:12:07:
+
+<img width="1502" height="270" alt="image" src="https://github.com/user-attachments/assets/51408c80-8598-4056-bebf-1bb8bcbb9395" />
+
+
+
+Task14: Before exfiltration, several files were moved to the staged folder. When was the Heisen-9 facility backup database moved to the staged folder for exfiltration?
+
+Có vẻ như câu hỏi muốn tìm mốc thời gian (Timestamp) mà file Heisen-9 này được tạo ra hoặc bị copy vào bên trong thư mục flyover
+
+
+Lọc với từ khóa Heisen-9 trong file csv 
+<img width="1865" height="736" alt="image" src="https://github.com/user-attachments/assets/e73f62c6-fb95-4de9-8244-81af29db9514" />
+
+Một chút logic của toàn bộ quá trình tấn công để dễ hình dung: Task 13 và 14
+
+10:11:09 (UTC): Kẻ tấn công copy/di chuyển file database Heisen-9 vào thư mục tạm (staged folder) để gom hàng.
+
+10:12:07 (UTC): Đúng 1 phút sau, hắn bắt đầu dùng TeamViewer để "tuồn" (exfiltrate) các file này ra ngoài.
+
+Task 15:When did the attacker access and read a txt file, which was probably the output of one of the tools they brought, due to the naming convention of the file?
+ 
+Câu hỏi này muốn thử thách khả năng tìm kiếm dấu vết truy cập tài liệu (file access) của kẻ tấn công. Khi attacker chạy tools mimikatz để trích xuất mật khẩu thì có vẻ như chúng đã lưu vào 1 file txt, vậy thì chỉ cần tìm kiếm với từ khóa txt trong file csv là được
+
+<img width="1477" height="406" alt="image" src="https://github.com/user-attachments/assets/6931610c-0389-4e06-89bc-cccda7ed5f6e" />
+
+
+Mình tìm ra được 1 file là dump.txt đc tạo vào 8/20/2025  10:08:06
+
+<img width="1602" height="247" alt="image" src="https://github.com/user-attachments/assets/fbbaba77-6fc4-486c-ba75-56caf3e8204b" />
+
+
+Task 16:The attacker created a persistence mechanism on the workstation. When was the persistence setup?
+
+Câu hỏi này đang đề cập đến một khái niệm cốt lõi trong các cuộc tấn công mạng: Persistence (Cơ chế duy trì quyền truy cập/Trú ngụ lâu dài).Persistence là gì? Khi hacker đã xâm nhập thành công, chúng luôn lo sợ nạn nhân sẽ tắt máy, đăng xuất hoặc khởi động lại máy tính (những hành động này sẽ quét sạch các kết nối và mã độc đang chạy tạm thời trên RAM). Để "sống sót", chúng sẽ cấy mã độc vào các thành phần khởi động cố định của Windows
+
+Ở bài lab này, kẻ tấn công đã can thiệp vào cấu hình đăng nhập (Winlogon), lén chèn thêm file thực thi của chúng (có tên là JM.exe) để nó tự động kích hoạt mỗi khi có người dùng đăng nhập vào máy.
+
+Sau đó mình trích xuất Hive SOFTWARE trong thư mục C:\Windows\System32\config vì đây là nơi Windows lưu trữ toàn bộ cấu hình phần mềm hệ thống.Sau đó mở bằng registry explore và điều hướng tới thư mục sau Microsoft\Windows NT\CurrentVersion\Winlogon.
+
+<img width="1007" height="511" alt="image" src="https://github.com/user-attachments/assets/17135b5e-ab5a-4f14-9dbf-fbfac39b4b68" />
+
+Bình thường, hệ thống chỉ chạy mỗi Userinit.exe để khởi tạo môi trường khi người dùng đăng nhập. Việc hacker phẩy thêm , JM.exe vào đằng sau đồng nghĩa với việc: cứ mỗi lần có ai đó đăng nhập vào máy tính này, mã độc JM.exe sẽ tự động được kích hoạt chạy ngầm theo
+
+<img width="1328" height="367" alt="image" src="https://github.com/user-attachments/assets/9447a111-78ed-407f-82a5-d47fba3da36b" />
+
+Có vẻ như đây là thời gian attacker chèn mã độc vào hệ thống.
+
+<img width="1492" height="300" alt="image" src="https://github.com/user-attachments/assets/cf201f11-ca09-4743-9e4e-d0ca86a976b1" />
+
+Task 17: What is the MITRE ID of the persistence subtechnique?
+
+ề bài muốn kiểm tra xem có biết hành vi "sửa khóa Userinit trong Registry Winlogon" được giới bảo mật gọi tên chính thức bằng mã ID nào không
+
+Như chúng ta vừa phân tích ở câu trước, kẻ tấn công đã can thiệp vào khóa Winlogon để ép hệ thống tự động chạy file JM.exe mỗi khi người dùng đăng nhập (Logon).
+
+Nếu lên trang chủ của MITRE ATT&CK và tìm kiếm từ khóa "Winlogon" hoặc "Userinit", sẽ thấy kỹ thuật này thuộc nhóm Boot or Logon Autostart Execution (T1547) và kỹ thuật phụ cụ thể dành riêng cho Winlogon Helper là .004
+
+<img width="1437" height="298" alt="image" src="https://github.com/user-attachments/assets/8a786fe4-3fe8-4556-92ff-43fb8a5bd416" />
+
+Task 18: When did the malicious RMM session end?
+
+RMM (Remote Monitoring and Management): Là thuật ngữ chỉ chung các phần mềm hỗ trợ điều khiển và quản trị từ xa. Trong bài lab này, công cụ RMM bị hacker lợi dụng chính là TeamViewer. Mình cần xác định mốc thời gian chính xác (Timestamp) mà phiên điều khiển độc hại (malicious session) này bị đóng lại.
+
+Trong thư mục log của TeamViewer, có một file chuyên dụng để ghi lại lịch sử kết nối đến có tên là Connections_incoming.txt.
+
+<img width="1437" height="670" alt="image" src="https://github.com/user-attachments/assets/a96df5f7-20ee-4297-a522-dc05f1e9962c" />
+
+<img width="1592" height="271" alt="image" src="https://github.com/user-attachments/assets/03f54f4d-7a32-4802-9333-6d4fc923ef8c" />
+
+Task 19: The attacker found a password from exfiltrated files, allowing him to move laterally further into CogWork-1 infrastructure. What are the credentials for Heisen-9-WS-6?
+
+File cơ sở dữ liệu mật khẩu Heisen-9 remote snapshot.kdbx bị tuồn qua TeamViewer ở các câu trước và có vẻ như task cuối muốn chúng ta tìm được user name và password
+
+<img width="893" height="152" alt="image" src="https://github.com/user-attachments/assets/0111af40-c322-449a-8533-9d322c3d4575" />
+
+Và có vẻ  như task cuối này chúng ta phải đi brute-force dùng keepass 2 john để lấy mã hash và dùng john the ripper để crack mật khẩu
+
+Vì máy kali của mình lỗi mở không lên nên mình đi kiếm đáp án để hoàn thành labs nha.....
+
+
+<img width="1533" height="371" alt="image" src="https://github.com/user-attachments/assets/43c2895e-7f26-46fe-9680-c22368356df4" />
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
