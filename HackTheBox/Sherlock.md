@@ -134,6 +134,25 @@ Có vẻ như webbrowserpassview.exe chạy trong 8s quy đổi sang ms là 8000
 
 Task 12:The attacker executed a OS Credential dumping tool on the system. When was the tool executed?
 
+Đến đây câu hỏi lại muốn chúng ta biết tools trích xuất mật khẩu hệ điều hành trên hệ thống mà attacker đã chạy khi nào, tools đó chính là mimikatz. Mình check trong event logs thì không tìm thấy mimikatz 
+
+Vì không có log thực thi trực tiếp và bài lab này cũng không cung cấp sẵn thư mục Prefetch, nên mình phân tích USN Journal ($J).
+
+<img width="1534" height="369" alt="image" src="https://github.com/user-attachments/assets/3b3b923d-f8d5-40ef-81c3-db159c84790c" />
+
+Tìm hiểu thêm về fiel $I thì File này là một cuốn nhật ký ghi lại mọi thay đổi trên ổ đĩa (tạo, sửa, xóa file).
+
+Sau đó mình sài tools ntfs log tracker để load file này vào và export ra 1 file csv , vì đề hỏi là " excuted" nên mình search với từ khóa là MIMIKATZ or .pf
+
+
+
+<img width="1895" height="729" alt="image" src="https://github.com/user-attachments/assets/9d53c029-4053-4013-ba07-7a5c5a46872a" />
+
+Tới đây thì ra được thời gian mà tiến trình đã thực thi nhưng mà vì khi export là utc+7 nên mình phải trừ bớt đi 7 tiếng
+
+<img width="1530" height="272" alt="image" src="https://github.com/user-attachments/assets/fa085a02-f9c9-4d93-bf9d-e84d20c684ea" />
+
+
 
 
 
