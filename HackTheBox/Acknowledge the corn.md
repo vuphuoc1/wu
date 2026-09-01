@@ -745,7 +745,247 @@ Trao đổi khóa (Key Exchange): Máy chủ C2 nhận được, tạo ra một 
 
 Giao tiếp chính thức (Type 1 trở đi): Kể từ đây (chính là gói tin Type: 1 ), mọi giao tiếp đều được mã hóa bằng Session Key mới
 
-Thứ chúng ta còn thiếu là cặp khóa public key và private key của thuật toán mã hóa RSA
+Thứ chúng ta còn thiếu là cặp khóa public key và private key của thuật toán mã hóa RSA.
+
+Luồng mã hóa tuân theo logic như này cho ta dễ hiểu: Các loại khóa (Key) tham gia vào hệ thống
+Khóa tĩnh (Hardcoded AES Key): Cả máy nạn nhân (Grunt) và máy chủ C2 đều biết . Nhiệm vụ của nó chỉ là bảo vệ những lời chào hỏi đầu tiên.
+
+Khóa bất đối xứng (RSA Keypair): Máy nạn nhân tự tạo ra khi vừa khởi động. Khóa Công khai (Public Key) dùng để đem đi tặng, còn Khóa Bí mật (Private Key) được giấu đi.
+
+ Và cuối cùng là khóa phiên (Session Key): Máy chủ C2 tự tạo ra (chuỗi 64 ký tự Hex).
+
+ Trích xuất RSA Private Key từ Memory Dump: Dùng HxD để trích private key từ file dmp, ctr+f để tìm với từ khóa là RSA2
+
+ <img width="1023" height="560" alt="image" src="https://github.com/user-attachments/assets/ce43c9a2-48b9-4fe5-b0a0-8b99107e4434" />
+
+
+<img width="1022" height="866" alt="image" src="https://github.com/user-attachments/assets/1499c9de-d3b2-444d-8f9d-1ad32ff77ccd" />
+
+Tiến hành cắt bytes theo 3 khối là modules, P , Q
+
+hex_n = "C214C87F9F0BB1E057909D7487EA07434B92006F4DD683A0430B6D1F1F5957F56EE1D845E6190AD0E745F2F5F6FD0BBA74D06D591478CB9C497BD1A976CC2E741FA54829444FD9C5140739D28F25E7BBFCA2BEF50FFAAF636CBE4858B27C32945AA70BF3A4095B4C38722A365DFBCAC93ED7F91488676E584FB285BEFD79D0AEB9B8047D24E64F1B2D92432FCB254ED381B822A728CE4264359BA34E1D2AE5454B2DF6673728327D0455C437179EDF994F4EFAF4F8426603F05764DAA55CEDD95F426BB7CFD6B8FD334B1B72264F0AABC32E930F0F7CA0295A660AF6DDEC393B800F113EDA2C6394ABC1414958605816E663C1F5682A9312860D9FB8C953B419"
+
+hex_p = "D102B5556695AD6C37700711B9BE25305F2FD3B80D8B77C15F7853C5CE49536FA00F30AC3EB5F85BEBBBDA9688E292DCB1599E7F1196D7534512363675074882E9D6BF0097A38D13DABAB427AA10918E9CDFCD6065218A7F66132AE0D6E54BBCF3CE2BAB80313EBA0367E67C6EF28DFA538F03C5DE2E4FF1B08E119BED809EF7"
+
+hex_q = "EDB6D5F91D36739999FADD1B1570A4A1CE23503A6B4217B82AC9C55E91DD78F4A85FBA5B848963AD6DE068D129DBC447398A46B0FC668314307687C1B66770CE000AEF3C6989A6B3379921A7F538691D219E50BBA87A72885271E72D7A744F8FEF8D073860E109728C02E6615B128036F6188A35D01A8AB71A4DFE7AED0AB16F"
+
+Sau đó mình viết script để tính private key :
+```
+import base64
+
+# --- 1. 3 CHUỖI HEX ĐÃ ĐƯỢC CẮT CHÍNH XÁC ---
+
+hex_n = "C214C87F9F0BB1E057909D7487EA07434B92006F4DD683A0430B6D1F1F5957F56EE1D845E6190AD0E745F2F5F6FD0BBA74D06D591478CB9C497BD1A976CC2E741FA54829444FD9C5140739D28F25E7BBFCA2BEF50FFAAF636CBE4858B27C32945AA70BF3A4095B4C38722A365DFBCAC93ED7F91488676E584FB285BEFD79D0AEB9B8047D24E64F1B2D92432FCB254ED381B822A728CE4264359BA34E1D2AE5454B2DF6673728327D0455C437179EDF994F4EFAF4F8426603F05764DAA55CEDD95F426BB7CFD6B8FD334B1B72264F0AABC32E930F0F7CA0295A660AF6DDEC393B800F113EDA2C6394ABC1414958605816E663C1F5682A9312860D9FB8C953B419"
+
+hex_p = "D102B5556695AD6C37700711B9BE25305F2FD3B80D8B77C15F7853C5CE49536FA00F30AC3EB5F85BEBBBDA9688E292DCB1599E7F1196D7534512363675074882E9D6BF0097A38D13DABAB427AA10918E9CDFCD6065218A7F66132AE0D6E54BBCF3CE2BAB80313EBA0367E67C6EF28DFA538F03C5DE2E4FF1B08E119BED809EF7"
+
+hex_q = "EDB6D5F91D36739999FADD1B1570A4A1CE23503A6B4217B82AC9C55E91DD78F4A85FBA5B848963AD6DE068D129DBC447398A46B0FC668314307687C1B66770CE000AEF3C6989A6B3379921A7F538691D219E50BBA87A72885271E72D7A744F8FEF8D073860E109728C02E6615B128036F6188A35D01A8AB71A4DFE7AED0AB16F"
+
+# Chuyển Hex thành số nguyên
+n = int(hex_n.replace(" ", ""), 16)
+p = int(hex_p.replace(" ", ""), 16)
+q = int(hex_q.replace(" ", ""), 16)
+e = 65537 # Số mũ mặc định của Windows
+
+# --- 2. TỰ ĐỘNG TÍNH TOÁN CÁC THAM SỐ TOÁN HỌC ---
+d = pow(e, -1, (p - 1) * (q - 1))
+dmp1 = d % (p - 1)
+dmq1 = d % (q - 1)
+iqmp = pow(q, -1, p)
+
+# --- 3. ĐÓNG GÓI CẤU TRÚC ASN.1 DER (Thủ công 100%) ---
+def encode_int(val):
+    h = hex(val)[2:]
+    if len(h) % 2 != 0: h = '0' + h
+    b = bytes.fromhex(h)
+    if b[0] >= 0x80: b = b'\x00' + b # Bù số dương
+    
+    length = len(b)
+    if length < 128:
+        len_b = bytes([length])
+    else:
+        len_h = hex(length)[2:]
+        if len(len_h) % 2 != 0: len_h = '0' + len_h
+        len_b = bytes([0x80 | (len(len_h) // 2)]) + bytes.fromhex(len_h)
+    return b'\x02' + len_b + b
+
+def encode_seq(items):
+    content = b''.join(items)
+    length = len(content)
+    if length < 128:
+        len_b = bytes([length])
+    else:
+        len_h = hex(length)[2:]
+        if len(len_h) % 2 != 0: len_h = '0' + len_h
+        len_b = bytes([0x80 | (len(len_h) // 2)]) + bytes.fromhex(len_h)
+    return b'\x30' + len_b + content
+
+# Ghép toàn bộ tham số vào cấu trúc
+der = encode_seq([
+    encode_int(0), encode_int(n), encode_int(e), encode_int(d),
+    encode_int(p), encode_int(q), encode_int(dmp1), encode_int(dmq1), encode_int(iqmp)
+])
+
+# --- 4. XUẤT RA CHUẨN PEM ---
+b64 = base64.b64encode(der).decode('ascii')
+pem = "-----BEGIN RSA PRIVATE KEY-----\n"
+for i in range(0, len(b64), 64):
+    pem += b64[i:i+64] + "\n"
+pem += "-----END RSA PRIVATE KEY-----\n"
+
+print(pem)
+```
+
+Thu được private key:
+```
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAwhTIf58LseBXkJ10h+oHQ0uSAG9N1oOgQwttHx9ZV/Vu4dhF
+5hkK0OdF8vX2/Qu6dNBtWRR4y5xJe9GpdswudB+lSClET9nFFAc50o8l57v8or71
+D/qvY2y+SFiyfDKUWqcL86QJW0w4cio2XfvKyT7X+RSIZ25YT7KFvv150K65uAR9
+JOZPGy2SQy/LJU7TgbgipyjOQmQ1m6NOHSrlRUst9mc3KDJ9BFXENxee35lPTvr0
++EJmA/BXZNqlXO3ZX0Jrt8/WuP0zSxtyJk8Kq8Mukw8PfKApWmYK9t3sOTuADxE+
+2ixjlKvBQUlYYFgW5mPB9WgqkxKGDZ+4yVO0GQIDAQABAoIBAD5VoIPk2EO8M0Oe
+XsQcdVK23eDH3u8r/XgrHlQlpHNsv71H0kNx/ZhU/5FmUHq7nppQKx62RYnX234q
+O8yNDcp8M4C2yFsBLZweKgMnuNvx89VtkZYdROGhFohz/HeJYz6ucldBc0Pgeiyo
+xCdxbJMwXPuCDcFynmiShQRvswVD2aWL1F8n4m831ulcMwLdeyzY9zmfYcoVNw2e
+I4Oy4i66zBNiB/9biXDm/ake1ELfuW3vYvx/SphqlR7ilJjeRIm2lYTxBV9koDfr
+JKVLXC41U1tshUjZ/D5a3HcMVzbkYW4f14Y0TWMl3tqrhOBrHpU1mVf2zLmHM/la
+EX942xUCgYEA0QK1VWaVrWw3cAcRub4lMF8v07gNi3fBX3hTxc5JU2+gDzCsPrX4
+W+u72paI4pLcsVmefxGW11NFEjY2dQdIgunWvwCXo40T2rq0J6oQkY6c381gZSGK
+f2YTKuDW5Uu8884rq4AxProDZ+Z8bvKN+lOPA8XeLk/xsI4Rm+2AnvcCgYEA7bbV
++R02c5mZ+t0bFXCkoc4jUDprQhe4KsnFXpHdePSoX7pbhIljrW3gaNEp28RHOYpG
+sPxmgxQwdofBtmdwzgAK7zxpiaazN5khp/U4aR0hnlC7qHpyiFJx5y16dE+P740H
+OGDhCXKMAuZhWxKANvYYijXQGoq3Gk3+eu0KsW8CgYBNi56xh7UCucK7urO14Tk1
+ACvjdkb4Nr8055TVL9r+rMyKtjlBrwvtNsHksLMqtOhSmHh4lpMLYqaewiRkOQaL
+I6z8AoFAOehi36BVkwBAsNO9KRqZit8yszFrWC4Ctp3tKtIC+DXNGwCGfPovw6gv
+du75rGDpd9mo8pzP6EcvMwKBgQDF/UfAogUtSV0HpcseE2D7545gDxgwx0K8WKvL
+9Z/KU7Q9byE0hZ4A4AhOJRBBG/zavwHb/Y2AVXt77dx5CTTaTwzMb7vTS4Xvo9p1
+YvgmDH5otwNl8v6b7lcyXh2k7HOM6SB/Y6lrTf2xmKKz0Pf7TwPncaSvxqN1BEsV
+pYMHfwKBgQCs6Vd/qxIVvjxQlD0weOfV1kisRS0329W+wsj2Msu50ZGkLXUZu7CW
+ZiRah1qoJpooPdQGmOpW8QriZceSemddcAzDZx6u8jKSlenN9FE1BwlMXHf/WQlT
+Sy/t+BECnNs1yxYXHFHfxq6yJR75yiD8Ksa0RiT8TjMMBRN8/8K0KA==
+-----END RSA PRIVATE KEY-----
+```
+Giờ mình cần tìm session key, mình lại viết script với payload như này :
+
+<img width="1917" height="440" alt="image" src="https://github.com/user-attachments/assets/a4d42c77-c56c-4018-8aa4-0d4009be4878" />
+
+Đây là gói respone mà server c2 trả về máy nạn nhân tiến hành giải mã sẽ thu được session key từ đó giải mã được những luồng ở dưới packet, trước tiên giải mã b64 để lấy encrypt message trước:
+
+<img width="1526" height="797" alt="image" src="https://github.com/user-attachments/assets/ac8c9e00-ceb8-45b7-b8e7-ed3755a0bcb4" />
+
+Script giải mã lấy session key:
+
+```
+import base64
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as sym_padding
+from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+
+# 1. THÔNG SỐ ĐẦU VÀO
+aes_key_b64 = "e+MPqFZXA52Kx1xuTPTK6M/HtJkjq/0dfBJUsSJfzQw="
+iv_b64 = "7/1U1Qfc69DJkFQMuC7YLg=="
+enc_message_b64 = "8AVdSUo020zmBvJqdpXDEA9sRyotMGyUVqXOrRFk95GxGDEYotveTpqJhHUKUQ3Oduh3c7gSyyM3qVVN674P+ghJNQcdJdRS1YlUJckbg/bOEkfuxJ25JWMPh21EPS0/ptf6ytfkhnXjVJ4v3miEtdZ/+vtP4L49V8Ucl7kej8DrPfux1wi4oGjIf4TdRb2OYLQExVbcMGLb8b73mjmGwWTywqDc5+mr/m80cyv2xVQHLpQIiw1xdjFCgIH3J2FZDQMm14gr4caODgmGT+JGoOCGl8pMEPJ6q58Cv5LHTNLl/k3vtufVv8vIzn8FXHoAy+2ZHJ1vZXIqUl+OubCv2VhhSmCXz6Fg/G4AqFWb+cA="
+
+pem_data = b"""-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAwhTIf58LseBXkJ10h+oHQ0uSAG9N1oOgQwttHx9ZV/Vu4dhF
+5hkK0OdF8vX2/Qu6dNBtWRR4y5xJe9GpdswudB+lSClET9nFFAc50o8l57v8or71
+D/qvY2y+SFiyfDKUWqcL86QJW0w4cio2XfvKyT7X+RSIZ25YT7KFvv150K65uAR9
+JOZPGy2SQy/LJU7TgbgipyjOQmQ1m6NOHSrlRUst9mc3KDJ9BFXENxee35lPTvr0
++EJmA/BXZNqlXO3ZX0Jrt8/WuP0zSxtyJk8Kq8Mukw8PfKApWmYK9t3sOTuADxE+
+2ixjlKvBQUlYYFgW5mPB9WgqkxKGDZ+4yVO0GQIDAQABAoIBAD5VoIPk2EO8M0Oe
+XsQcdVK23eDH3u8r/XgrHlQlpHNsv71H0kNx/ZhU/5FmUHq7nppQKx62RYnX234q
+O8yNDcp8M4C2yFsBLZweKgMnuNvx89VtkZYdROGhFohz/HeJYz6ucldBc0Pgeiyo
+xCdxbJMwXPuCDcFynmiShQRvswVD2aWL1F8n4m831ulcMwLdeyzY9zmfYcoVNw2e
+I4Oy4i66zBNiB/9biXDm/ake1ELfuW3vYvx/SphqlR7ilJjeRIm2lYTxBV9koDfr
+JKVLXC41U1tshUjZ/D5a3HcMVzbkYW4f14Y0TWMl3tqrhOBrHpU1mVf2zLmHM/la
+EX942xUCgYEA0QK1VWaVrWw3cAcRub4lMF8v07gNi3fBX3hTxc5JU2+gDzCsPrX4
+W+u72paI4pLcsVmefxGW11NFEjY2dQdIgunWvwCXo40T2rq0J6oQkY6c381gZSGK
+f2YTKuDW5Uu8884rq4AxProDZ+Z8bvKN+lOPA8XeLk/xsI4Rm+2AnvcCgYEA7bbV
++R02c5mZ+t0bFXCkoc4jUDprQhe4KsnFXpHdePSoX7pbhIljrW3gaNEp28RHOYpG
+sPxmgxQwdofBtmdwzgAK7zxpiaazN5khp/U4aR0hnlC7qHpyiFJx5y16dE+P740H
+OGDhCXKMAuZhWxKANvYYijXQGoq3Gk3+eu0KsW8CgYBNi56xh7UCucK7urO14Tk1
+ACvjdkb4Nr8055TVL9r+rMyKtjlBrwvtNsHksLMqtOhSmHh4lpMLYqaewiRkOQaL
+I6z8AoFAOehi36BVkwBAsNO9KRqZit8yszFrWC4Ctp3tKtIC+DXNGwCGfPovw6gv
+du75rGDpd9mo8pzP6EcvMwKBgQDF/UfAogUtSV0HpcseE2D7545gDxgwx0K8WKvL
+9Z/KU7Q9byE0hZ4A4AhOJRBBG/zavwHb/Y2AVXt77dx5CTTaTwzMb7vTS4Xvo9p1
+YvgmDH5otwNl8v6b7lcyXh2k7HOM6SB/Y6lrTf2xmKKz0Pf7TwPncaSvxqN1BEsV
+pYMHfwKBgQCs6Vd/qxIVvjxQlD0weOfV1kisRS0329W+wsj2Msu50ZGkLXUZu7CW
+ZiRah1qoJpooPdQGmOpW8QriZceSemddcAzDZx6u8jKSlenN9FE1BwlMXHf/WQlT
+Sy/t+BECnNs1yxYXHFHfxq6yJR75yiD8Ksa0RiT8TjMMBRN8/8K0KA==
+-----END RSA PRIVATE KEY-----"""
+
+try:
+    # 2. GIẢI MÃ LỚP NGOÀI (AES-CBC)
+    key = base64.b64decode(aes_key_b64)
+    iv = base64.b64decode(iv_b64)
+    enc_data = base64.b64decode(enc_message_b64)
+
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    decryptor = cipher.decryptor()
+    padded_rsa_cipher = decryptor.update(enc_data) + decryptor.finalize()
+
+    # Xóa đệm PKCS7 của AES
+    unpadder = sym_padding.PKCS7(algorithms.AES.block_size).unpadder()
+    rsa_cipher = unpadder.update(padded_rsa_cipher) + unpadder.finalize()
+
+    # 3. GIẢI MÃ LỚP LÕI (RSA-OAEP)
+    private_key = serialization.load_pem_private_key(pem_data, password=None)
+    
+    session_key = private_key.decrypt(
+        rsa_cipher,
+        asym_padding.OAEP(
+            mgf=asym_padding.MGF1(algorithm=hashes.SHA1()),
+            algorithm=hashes.SHA1(),
+            label=None
+        )
+    )
+
+    # 4. XUẤT KẾT QUẢ
+    print("\n[+] THÀNH CÔNG! ĐÂY LÀ SESSION KEY CỦA BẠN:")
+    print(session_key.hex())
+
+except Exception as e:
+    print(f"\n[-] Có lỗi xảy ra: {e}")
+```
+Thu được kết quả như sau :
+
+<img width="1482" height="576" alt="image" src="https://github.com/user-attachments/assets/5060b602-40f9-44a3-af79-4e316e47388b" />
+
+Đã có session key giờ ta tiếp tục giải mã các payload để xem mã độc này đã làm gì trên máy nạn nhân với các luồng màu đỏ:
+
+<img width="1915" height="872" alt="image" src="https://github.com/user-attachments/assets/565bd9ff-1a54-4372-96dc-bed38144230a" />
+
+Mình chỉ ví dụ 1 vài luồng ở gần cuối :
+<img width="1540" height="706" alt="image" src="https://github.com/user-attachments/assets/5f612787-ab7a-4b37-88be-7c6bde66df66" />
+
+Tiến hành giải mã có vẻ như attacker đã cài keylogger vào máy nạn nhân:
+
+<img width="1562" height="817" alt="image" src="https://github.com/user-attachments/assets/aa8a7560-04be-4ce7-bcac-a03f7c47a4d3" />
+
+<img width="1887" height="967" alt="image" src="https://github.com/user-attachments/assets/b0b57a43-2bcd-43d0-bad5-aa5365726a37" />
+
+ Tiến hành giải mã luồng này mình thu được flag:
+
+<img width="1545" height="737" alt="image" src="https://github.com/user-attachments/assets/22c40008-cf29-4235-91c0-bb077fc585b1" />
+
+<img width="1515" height="722" alt="image" src="https://github.com/user-attachments/assets/2df120a4-f16b-4298-973d-4f87357fce8f" />
+
+Flag: HTB{C2slshiftkeyLSHIFTKEYLSHIFTKEYLSHIFTKEYLSHIFTKEYLSHIFTKEY"}
+
+
+ 
+
+
+
+
+
+
+
+
+
 
 
 
