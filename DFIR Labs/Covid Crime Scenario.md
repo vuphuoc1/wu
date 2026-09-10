@@ -48,6 +48,11 @@ Và mình chú ý vào đoạn tin nhắn này, có vẻ như " giao dịch vũ 
 Vậy ra file đó là secret.txt , tìm cách đọc nội dung trong file đó là xong.
 
 
+Mình tìm mãi mà không thấy, do nạn nhân đã tải file đó về nhưng dùng eraser xóa vĩnh viễn nên không khôi phục được, chỉ còn 1 cách là tìm lưu lại trên cloud nhưng bài này đã 6 năm rồi nên ở trên đó chắc cũng xóa nên mình phải lấy tạm flag.
+Mr_K_1_W@nT_Cola!!
+Ghép lại ta được flag{Mr_K_1_W@nT_Cola!!_83.0.4103.61}.
+
+
 
 
 
