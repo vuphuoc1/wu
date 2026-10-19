@@ -1,4 +1,4 @@
-<img width="1082" height="610" alt="image" src="https://github.com/user-attachments/assets/f29e7a35-9b1a-41be-a695-bc77908922a9" />Write-up: HTB — The Art of Capture
+Write-up: HTB — The Art of Capture
 
 Challenge Scenario
 I had a dream that my PC was captured by evil daemons. The next day, strange things started happening to it. There are two parts of the flag in this challenge.
