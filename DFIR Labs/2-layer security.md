@@ -10,7 +10,7 @@ Sau đó mình đưa sang máy ảo để unzip thì thu được như này
 
 <img width="1204" height="758" alt="image" src="https://github.com/user-attachments/assets/31f0efa0-b789-4c97-a319-34a5aa65760d" />
 
-Mình chú ý đến 1 file txt tương dối khả nghi
+Mình chú ý đến file console host chứa lịch sử lệnh bash của powershell.
 
 <img width="881" height="305" alt="image" src="https://github.com/user-attachments/assets/3f1a371a-be75-4717-a2c8-bfa20e7d7fd6" />
 
